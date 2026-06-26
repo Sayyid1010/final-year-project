@@ -1,5 +1,6 @@
 import numpy as np
-from ai_edge_litert.interpreter import Interpreter
+import tensorflow as tf
+Interpreter = tf.lite.Interpreter
 from PIL import Image
 
 class DiseasePredictor:
