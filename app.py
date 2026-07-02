@@ -1,6 +1,6 @@
 import streamlit as st
 from PIL import Image
-from predictor import DiseasePredictor
+from ml_service.predictor import DiseasePredictor
 
 st.set_page_config(
     page_title="LeafAI — Plant Disease Detection",
