@@ -1,4 +1,4 @@
 streamlit
-ai-edge-litert
 numpy
 Pillow
+tflite-runtime
