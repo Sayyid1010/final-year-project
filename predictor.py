@@ -1,12 +1,9 @@
 import numpy as np
-import tensorflow as tf
-Interpreter = tf.lite.Interpreter
 from PIL import Image
+from ai_edge_litert.interpreter import Interpreter
 
 class DiseasePredictor:
     def __init__(self):
-
-        # Load disease model
         self.disease_model = Interpreter(
             model_path="models/plant_disease_model_38.tflite"
         )
@@ -14,7 +11,6 @@ class DiseasePredictor:
         self.disease_input = self.disease_model.get_input_details()
         self.disease_output = self.disease_model.get_output_details()
 
-        # Load validator model
         self.validator_model = Interpreter(
             model_path="models/leaf_validator.tflite"
         )
@@ -22,7 +18,6 @@ class DiseasePredictor:
         self.val_input = self.validator_model.get_input_details()
         self.val_output = self.validator_model.get_output_details()
 
-        # ⚠️ YOU MUST REPLACE THIS WITH YOUR TRAINING CLASS ORDER
         self.ai_classes = [
             "Apple Black Rot", "Apple Cedar Rust", "Apple Healthy", "Apple Scab",
             "Blueberry Healthy", "Cherry Healthy", "Cherry Powdery Mildew",
@@ -39,66 +34,30 @@ class DiseasePredictor:
             "Tomato Target Spot", "Tomato Yellow Leaf Curl Virus"
         ]
 
-    # -------------------------
-    # PREPROCESS IMAGE
-    # -------------------------
     def preprocess(self, image):
-        image = image.resize((224, 224))
-        image = np.array(image, dtype=np.float32) / 255.0
-        image = np.expand_dims(image, axis=0)
-        return image
+        img = image.resize((224, 224))
+        img_array = np.array(img, dtype=np.float32) / 255.0
+        return np.expand_dims(img_array, axis=0)
 
-    # -------------------------
-    # VALIDATE LEAF
-    # -------------------------
     def validate_leaf(self, image):
-        img = self.preprocess(image)
-
+        img_input = self.preprocess(image)
         self.validator_model.set_tensor(
-            self.val_input[0]['index'], img
-        )
+            self.val_input[0]['index'], img_input)
         self.validator_model.invoke()
+        prediction = self.validator_model.get_tensor(
+            self.val_output[0]['index'])
+        classes = ['leaf', 'not_leaf']
+        result = classes[np.argmax(prediction)]
+        confidence = np.max(prediction) * 100
+        return result, confidence
 
-        output = self.validator_model.get_tensor(
-            self.val_output[0]['index']
-        )
-
-        output = np.squeeze(output)
-
-        index = int(np.argmax(output))
-        confidence = float(np.max(output)) * 100
-
-        classes = ["leaf", "not_leaf"]
-
-        return classes[index], confidence
-
-    # -------------------------
-    # PREDICT DISEASE
-    # -------------------------
     def predict_disease(self, image):
-        img = self.preprocess(image)
-
+        img_input = self.preprocess(image)
         self.disease_model.set_tensor(
-            self.disease_input[0]['index'], img
-        )
+            self.disease_input[0]['index'], img_input)
         self.disease_model.invoke()
-
-        output = self.disease_model.get_tensor(
-            self.disease_output[0]['index']
-        )
-
-        output = np.squeeze(output)
-
-        index = int(np.argmax(output))
-        confidence = float(np.max(output)) * 100
-
-        # safety check
-        if confidence < 60:
-            return "Uncertain prediction", confidence
-
-        if index >= len(self.ai_classes):
-            return "Unknown class", confidence
-
-        result = self.ai_classes[index]
-
+        prediction = self.disease_model.get_tensor(
+            self.disease_output[0]['index'])
+        result = self.ai_classes[np.argmax(prediction)]
+        confidence = np.max(prediction) * 100
         return result, confidence
