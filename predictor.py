@@ -1,6 +1,14 @@
 import numpy as np
 from PIL import Image
-from ai_edge_litert.interpreter import Interpreter
+
+try:
+    from tflite_runtime.interpreter import Interpreter
+except ImportError:
+    try:
+        from ai_edge_litert.interpreter import Interpreter
+    except ImportError:
+        import tensorflow as tf
+        Interpreter = tf.lite.Interpreter
 
 class DiseasePredictor:
     def __init__(self):
